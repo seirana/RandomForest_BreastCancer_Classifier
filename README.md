@@ -199,6 +199,6 @@ artifacts/
 
 ## 👩‍💻 Author
 
-Developed by **Seirana**
-*Generated with assistance from Leo.*
+Developed by Seirana
+Generated with assistance from Leo.
 ---
