@@ -94,7 +94,7 @@ ml-baseline/
 ├─ main.py
 ├─ requirements.txt
 ├─ README.md
-└─ artifacts/         # created automatically
+└─ artifacts/
 ```
 
 ### ⚙️ Key Functions
