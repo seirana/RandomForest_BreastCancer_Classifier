@@ -1,17 +1,17 @@
 # 🧠 RandomForest_BreastCancer_Classifier
 
-AutoBase is a compact, one-file **Machine Learning evaluation toolkit** that automates model training, cross-validation, and visualization.
-It provides a **reproducible baseline** for ML benchmarking — ready to run, interpret, and extend.
+AutoBase is a compact, **Machine Learning evaluation toolkit** that automates model training, cross-validation, and visualization.
+It provides a **reproducible baseline** for ML benchmarking, ready to run, interpret, and extend.
 
 ---
 
 ## 📌 1. Research Question
 
-Most ML projects start with repetitive tasks — setting up data, building baseline models, running evaluations, and saving metrics.
+Most ML projects start with repetitive tasks- setting up data, building baseline models, running evaluations, and saving metrics.
 These steps are crucial but time-consuming.
 
 > **Question:**
-> How can we design a single, reproducible script that performs model training, evaluation, calibration, and visualization automatically?
+> How can I design a single, reproducible script that performs model training, evaluation, calibration, and visualization automatically?
 
 ---
 
@@ -194,9 +194,3 @@ artifacts/
 | **Main Outputs** | Metrics, ROC/PR plots, Calibration curve, Saved model         |
 | **Runtime**      | < 2 minutes on a standard laptop                              |
 | **Outcome**      | Complete, reusable ML baseline system                         |
-
----
-
-## 👩‍💻 Author
-
-Developed by Seirana, generated with assistance from Leo.
