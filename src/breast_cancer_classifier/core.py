@@ -99,7 +99,7 @@ def build_model(
 
     if name == "rf":
         return RandomForestClassifier(
-            n_estimators=500,
+            n_estimators=300,
             max_depth=None,
             class_weight="balanced_subsample",
             n_jobs=int(n_jobs),
