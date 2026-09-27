@@ -1,196 +1,150 @@
-# 🧠 RandomForest_BreastCancer_Classifier
+# RandomForest_BreastCancer_Classifier
 
-AutoBase is a compact, **Machine Learning evaluation toolkit** that automates model training, cross-validation, and visualization.
-It provides a **reproducible baseline** for ML benchmarking, ready to run, interpret, and extend.
+This repository is a reproducible binary-classification benchmark built on scikit-learn's Wisconsin Diagnostic Breast Cancer dataset. Despite the historical repository name, the maintained project compares **Logistic Regression** and **Random Forest**.
 
----
+The upgrade focuses on correct out-of-fold evaluation, explicit class semantics, probability calibration, uncertainty reporting, reproducible artifacts, tests, CI, and clear limits on medical interpretation.
 
-## 📌 1. Research Question
+> **Important:** this project is an educational/research benchmark. It is not a clinical diagnostic device and must not be used to diagnose patients.
 
-Most ML projects start with repetitive tasks- setting up data, building baseline models, running evaluations, and saving metrics.
-These steps are crucial but time-consuming.
+## The most important correction: malignant is the positive class
 
-> **Question:**
-> How can I design a single, reproducible script that performs model training, evaluation, calibration, and visualization automatically?
+The scikit-learn dataset encodes `0 = malignant` and `1 = benign`. The historical implementation passed those labels directly to standard binary metrics, so F1, recall, precision, and average precision treated **benign** as the positive class.
 
----
+The maintained implementation explicitly remaps the target to `0 = benign` and `1 = malignant`. Therefore sensitivity/recall refers to malignant cases, precision refers to predicted malignant cases, and average precision treats malignancy as the positive event.
 
-## 💡 2. Proposed Solution
+## Dataset
 
-AutoBase provides a **self-contained Python script** that:
+Source: `sklearn.datasets.load_breast_cancer`.
 
-* Trains baseline ML models (`Logistic Regression`, `Random Forest`)
-* Runs **Stratified K-Fold cross-validation**
-* Computes key metrics: ROC-AUC, PR-AUC, F1, Accuracy
-* Produces ROC, PR, and calibration plots
-* Saves results, metrics, and models in an organized `artifacts/` folder
+The bundled dataset contains 569 samples, 30 continuous features, 212 malignant cases, and 357 benign cases. Because the dataset ships with scikit-learn, the benchmark does not require downloading patient data.
 
-It serves as a **reliable baseline reference** for any ML project using tabular data.
+## Evaluation design
 
----
+The core evaluation uses shuffled, stratified K-fold cross-validation. For every outer fold, a **fresh clone** of the estimator is fit on the training partition; optional probability calibration is performed only inside that training partition; probabilities are generated for the held-out fold; and held-out predictions are written back into their original sample positions.
 
-## ⚙️ 3. Methodology
+After all folds, every sample has exactly one **out-of-fold (OOF)** prediction from a model that was not trained on that sample.
 
-### 🧬 Dataset
+The pipeline reports both per-fold metrics with mean and sample standard deviation, and pooled OOF metrics calculated across all held-out predictions. See [EVALUATION.md](EVALUATION.md).
 
-* **Source:** `sklearn.datasets.load_breast_cancer`
-* **Samples:** 569
-* **Features:** 30 continuous variables
-* **Target:** Binary (0 = malignant, 1 = benign)
-* **Type:** Diagnostic features derived from breast tumor cell images
+## Metrics
 
-This dataset is lightweight, standardized, and ensures **full reproducibility**.
+The maintained pipeline reports ROC-AUC, Average Precision / PR-AUC, Accuracy, Balanced Accuracy, F1, Precision, Sensitivity / Recall, Specificity, Brier score, Log loss, and a confusion matrix.
 
----
+A fixed threshold of 0.5 is used by default for threshold-dependent metrics. It can be changed explicitly with `--threshold`, but it is **not tuned on held-out folds**.
 
-### 🧩 Models Used
+## Confidence intervals
 
-| Model                   | Type                  | Description                                             | Why Used                                                |
-| ----------------------- | --------------------- | ------------------------------------------------------- | ------------------------------------------------------- |
-| **Logistic Regression** | Linear                | Estimates class probabilities via the sigmoid function. | Interpretable, efficient, and a strong linear baseline. |
-| **Random Forest**       | Ensemble (non-linear) | Builds multiple decision trees via bagging.             | Captures complex, non-linear feature interactions.      |
+The pipeline can perform a stratified sample bootstrap over pooled OOF predictions. By default it uses 1000 bootstrap replicates and a 95% percentile interval while preserving the malignant/benign class counts in each resample.
 
-#### Logistic Regression Settings
+These intervals characterize uncertainty in the evaluated sample predictions. They do not capture every source of uncertainty, such as retraining on a new population or changes in data collection.
 
-```python
-LogisticRegression(
-    max_iter=2000,
-    class_weight="balanced",
-    random_state=seed
-)
-```
+## Probability calibration
 
-#### Random Forest Settings
+Calibration is optional with `--calibration none`, `--calibration sigmoid`, or `--calibration isotonic`.
 
-```python
-RandomForestClassifier(
-    n_estimators=300,
-    class_weight="balanced_subsample",
-    n_jobs=-1,
-    random_state=seed
-)
-```
+When calibration is enabled, `CalibratedClassifierCV` runs **inside each outer training fold**. The outer held-out fold is not used to fit the calibrator.
 
----
+The historical `--calibrate` flag remains available as an alias for `--calibration isotonic`.
 
-## 🔁 4. Evaluation Workflow
+## Models
 
-| Step                       | Description                                               |
-| -------------------------- | --------------------------------------------------------- |
-| **Cross-Validation**       | Stratified 5-fold to maintain class balance.              |
-| **Calibration (optional)** | Isotonic regression for reliable probabilities.           |
-| **Metrics**                | ROC-AUC, PR-AUC, F1, Accuracy (mean ± std).               |
-| **Plots**                  | ROC, PR, and calibration curves.                          |
-| **Outputs**                | Metrics JSON, confusion matrix, trained model, PNG plots. |
+### Logistic Regression
 
----
+The logistic baseline uses `StandardScaler`, class-balanced Logistic Regression, and deterministic seed configuration. The exported `feature_coefficients.csv` contains standardized coefficients from an uncalibrated full-data reference fit. Coefficient magnitude is model interpretation, not causal importance.
 
-## 🧱 5. Implementation Summary
+### Random Forest
 
-### 📁 File Structure
+The Random Forest uses 300 trees, balanced subsample class weights, a deterministic random seed, and configurable parallelism. The exported `feature_importances.csv` contains mean-decrease-in-impurity feature importance from a full-data reference fit. These importances are not causal effects.
 
-```
-ml-baseline/
-├─ main.py
-├─ requirements.txt
-├─ README.md
-└─ artifacts/
-```
-
-### ⚙️ Key Functions
-
-* **get_models()** – defines baseline models
-* **evaluate_cv()** – performs cross-validation and computes metrics
-* **plot_and_save_curves()** – generates and saves ROC/PR/Calibration plots
-* **main()** – orchestrates the full pipeline and writes outputs
-
----
-
-## 🧠 6. Reasoning Behind Design
-
-| Design Choice                  | Reason                                      |
-| ------------------------------ | ------------------------------------------- |
-| **Built-in dataset**           | Guarantees reproducibility                  |
-| **Linear + Non-linear models** | Covers diverse data patterns                |
-| **Cross-validation**           | Prevents overfitting, increases reliability |
-| **Calibration curves**         | Tests probability quality                   |
-| **Single file**                | Simplicity and portability                  |
-| **JSON/PNG outputs**           | Easy to compare between runs                |
-
----
-
-## 📊 7. Results
-
-### Quantitative Results (mean ± std, 5-fold CV)
-
-| Model               | ROC-AUC       | PR-AUC        | F1          | Accuracy    |
-| ------------------- | ------------- | ------------- | ----------- | ----------- |
-| Logistic Regression | 0.991 ± 0.005 | 0.988 ± 0.007 | 0.97 ± 0.01 | 0.96 ± 0.01 |
-| Random Forest       | 0.993 ± 0.004 | 0.991 ± 0.005 | 0.97 ± 0.01 | 0.97 ± 0.01 |
-
-Both models achieve **near-perfect discrimination**.
-Random Forest slightly outperforms Logistic Regression due to its non-linear capacity.
-
-### Qualitative Results
-
-* **ROC Curve:** Smooth and close to the top-left corner.
-* **PR Curve:** High precision across recall values.
-* **Calibration Curve:** Accurate probability estimates after isotonic calibration.
-* **Confusion Matrix:** Very few false negatives and false positives.
-
----
-
-## 🧩 8. Usage
-
-### 🧰 Installation
+## Installation
 
 ```bash
+git clone https://github.com/seirana/RandomForest_BreastCancer_Classifier.git
+cd RandomForest_BreastCancer_Classifier
+
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+
+python -m pip install --upgrade pip
+python -m pip install -e .
 ```
 
-### ▶️ Example Commands
+For development:
 
 ```bash
-# Logistic Regression with 5-fold CV and calibration
-python main.py --model logreg --cv 5 --calibrate
-
-# Random Forest with 10-fold CV
-python main.py --model rf --cv 10
+python -m pip install -e ".[dev]"
 ```
 
-### 📂 Output Files
+## Run one model
 
-```
-artifacts/
-├── best_model_logreg.joblib
-├── metrics.json
-├── confusion_matrix.csv
-├── roc_curve.png
-├── pr_curve.png
-└── calibration_curve.png
+Logistic Regression:
+
+```bash
+breast-cancer-baseline --model logreg --cv 5 --seed 42 --bootstrap-reps 1000
 ```
 
----
+Random Forest:
 
-## 🔍 9. Results Interpretation
+```bash
+breast-cancer-baseline --model rf --cv 5 --seed 42 --bootstrap-reps 1000
+```
 
-* **High ROC-AUC (>0.99)** confirms strong separability.
-* **Low standard deviation** indicates consistent performance across folds.
-* **Calibration curves** show reliable probability estimates.
-* **Random Forest** provides a slight performance edge, validating non-linear modeling.
+The historical entry point remains available after installation:
 
----
+```bash
+python main.py --model rf --cv 5
+```
 
-## 🧾 Summary
+## Compare both models
 
-| Category         | Description                                                   |
-| ---------------- | ------------------------------------------------------------- |
-| **Project Name** | AutoBase – Reproducible Baseline ML Evaluation Toolkit        |
-| **Goal**         | Build a single-file ML pipeline for standardized benchmarking |
-| **Models**       | Logistic Regression, Random Forest                            |
-| **Dataset**      | Breast Cancer (scikit-learn built-in)                         |
-| **Main Outputs** | Metrics, ROC/PR plots, Calibration curve, Saved model         |
-| **Runtime**      | < 2 minutes on a standard laptop                              |
-| **Outcome**      | Complete, reusable ML baseline system                         |
+```bash
+breast-cancer-baseline --model all --cv 5 --seed 42
+```
+
+Both models use the same cross-validation configuration. Results are stored under separate subdirectories plus a machine-readable `comparison.json`.
+
+## Generated artifacts
+
+A single-model run writes `metrics.json`, `oof_predictions.csv`, `confusion_matrix.csv`, ROC/PR/calibration plots, a model-interpretation CSV, `best_model_<model>.joblib`, and `run_metadata.json`.
+
+For `--model all`, model-specific outputs are stored under `artifacts/logreg/` and `artifacts/rf/`; the root directory also contains `comparison.json` and `run_metadata.json`.
+
+Generated models, plots, and metrics are not committed to Git.
+
+## Reproducibility metadata
+
+`run_metadata.json` records command arguments, the resolved calibration setting, Python/platform information, NumPy/pandas/scikit-learn versions, Git commit when available, dataset sample/feature counts, class semantics, and a SHA-256 fingerprint of the exact feature matrix, remapped target, and feature-name list.
+
+## Testing
+
+```bash
+python -m pytest
+python -m ruff check src tests main.py
+```
+
+Tests cover malignant-positive target remapping, sensitivity/specificity semantics, complete OOF prediction coverage, fixed-seed reproducibility, inner-fold calibration, bootstrap reproducibility, end-to-end artifact generation, and two-model comparison output.
+
+GitHub Actions runs the maintained project on Python 3.10, 3.11, and 3.12 and builds the Docker image.
+
+## Docker
+
+```bash
+docker build -t breast-cancer-baseline .
+mkdir -p artifacts
+
+docker run --rm \
+  -v "$PWD/artifacts:/app/artifacts" \
+  breast-cancer-baseline \
+  --model all \
+  --outdir /app/artifacts
+```
+
+## What this repository demonstrates
+
+The useful engineering/research outcome is not simply that a classifier receives a high score on a small benchmark dataset. It demonstrates a reusable evaluation pattern: explicit target semantics, fresh estimator per fold, optional train-only calibration, OOF probabilities, discrimination/threshold/calibration metrics, bootstrap uncertainty, and reproducible artifacts.
+
+See [MODEL_CARD.md](MODEL_CARD.md) for limitations.
+
+## License
+
+No explicit license file is currently included. Repository visibility alone does not grant reuse rights.
