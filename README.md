@@ -6,12 +6,6 @@ The upgrade focuses on correct out-of-fold evaluation, explicit class semantics,
 
 > **Important:** this project is an educational/research benchmark. It is not a clinical diagnostic device and must not be used to diagnose patients.
 
-## The most important correction: malignant is the positive class
-
-The scikit-learn dataset encodes `0 = malignant` and `1 = benign`. The historical implementation passed those labels directly to standard binary metrics, so F1, recall, precision, and average precision treated **benign** as the positive class.
-
-The maintained implementation explicitly remaps the target to `0 = benign` and `1 = malignant`. Therefore sensitivity/recall refers to malignant cases, precision refers to predicted malignant cases, and average precision treats malignancy as the positive event.
-
 ## Dataset
 
 Source: `sklearn.datasets.load_breast_cancer`.
