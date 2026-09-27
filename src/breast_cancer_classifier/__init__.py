@@ -6,6 +6,7 @@ from .core import (
     bootstrap_confidence_intervals,
     build_model,
     evaluate_cv,
+    fit_final_model,
     load_dataset,
     scalar_metrics,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "bootstrap_confidence_intervals",
     "build_model",
     "evaluate_cv",
+    "fit_final_model",
     "load_dataset",
     "scalar_metrics",
 ]
