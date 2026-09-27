@@ -173,6 +173,32 @@ def _fitted_estimator(
     return calibrated
 
 
+def fit_final_model(
+    model: BaseEstimator,
+    X: np.ndarray,
+    y: np.ndarray,
+    *,
+    calibration: str = "none",
+    calibration_cv: int = 3,
+) -> BaseEstimator:
+    """Fit a fresh estimator on all supplied data for demonstration/deployment use."""
+
+    features = np.asarray(X, dtype=float)
+    labels = np.asarray(y, dtype=int)
+    _validate_binary_inputs(
+        features,
+        labels,
+        cv_splits=2,
+    )
+    return _fitted_estimator(
+        model,
+        features,
+        labels,
+        calibration=calibration,
+        calibration_cv=calibration_cv,
+    )
+
+
 def _positive_probability(
     estimator: BaseEstimator,
     X: np.ndarray,
